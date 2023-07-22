@@ -1,5 +1,5 @@
 {
-    "name": "savannabits/primevue-datatables",
+    "name": "nuwebs/primevue-ds-datatable",
     "description": "Easy Laravel Server-Side implementation of PrimeVue Datatables",
     "keywords": [
         "savannabits",
@@ -9,10 +9,15 @@
         "datatables",
         "server-side"
     ],
-    "homepage": "https://github.com/savannabits/primevue-datatables",
+    "homepage": "https://github.com/nuwebs/primevue-ds-datatables",
     "license": "MIT",
     "type": "library",
     "authors": [
+        {
+            "name": "Douglas Ramíres",
+            "email": "contacto@nuwebs.com.co",
+            "role": "Developer"
+        },
         {
             "name": "Sam Maosa",
             "email": "maosa.sam@gmail.com",
@@ -44,15 +49,5 @@
     },
     "config": {
         "sort-packages": true
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Savannabits\\PrimevueDatatables\\PrimevueDatatablesServiceProvider"
-            ],
-            "aliases": {
-                "PrimevueDatatables": "Savannabits\\PrimevueDatatables\\PrimevueDatatablesFacade"
-            }
-        }
     }
 }
