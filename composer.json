@@ -3,6 +3,8 @@
     "description": "Easy Laravel Server-Side implementation of PrimeVue Datatables",
     "keywords": [
         "savannabits",
+        "nuwebs",
+        "dorastorm",
         "primevue-datatables",
         "laravel",
         "primevue",
@@ -36,16 +38,6 @@
         "psr-4": {
             "Savannabits\\PrimevueDatatables\\": "src"
         }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Savannabits\\PrimevueDatatables\\Tests\\": "tests"
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/phpunit",
-        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
-
     },
     "config": {
         "sort-packages": true
