@@ -1,12 +1,12 @@
 <?php
 
-namespace Savannabits\PrimevueDatatables;
+namespace Nuwebs\PrimevueDatatable;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use ReflectionClass;
 use Throwable;
-class PrimevueDatatables
+class PrimevueDatatable
 {
     /**
      * @var Builder|\Illuminate\Database\Query\Builder

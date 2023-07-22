@@ -1,6 +1,6 @@
 <?php
 
-namespace Savannabits\PrimevueDatatables;
+namespace Nuwebs\PrimevueDatatable;
 
 use Illuminate\Database\Eloquent\Builder;
 
