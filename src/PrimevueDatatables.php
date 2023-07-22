@@ -3,7 +3,6 @@
 namespace Savannabits\PrimevueDatatables;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use ReflectionClass;
 use Throwable;
@@ -50,7 +49,7 @@ class PrimevueDatatables
     public static function of(Builder $query): static
     {
         // I'm pretty sure passing $query as an argument doesn't actually do anything.
-        $instance = new self($query);
+        $instance = new self();
         return $instance->query($query);
     }
 
@@ -63,7 +62,7 @@ class PrimevueDatatables
         $this->sort = collect($this->_dtParams)->get('sortField');
         $this->sortDirection = collect($this->_dtParams)->get('sortOrder') == 1 ? 'asc' : 'desc';
         $global = collect(collect($filters)->get("global") ?? null);
-        $localFilters = collect($filters)->except("global");
+        $localFilters = collect($filters)->except(["global"]);
 
         $columnNames = $this->_searchableColumns;
         $query = $this->query
@@ -71,7 +70,7 @@ class PrimevueDatatables
                 // Global Search
                 if (count($columnNames) && $global && collect($global)->get("value")) {
                     $firstColumn = collect($columnNames)->get(0);
-                    $otherColumns = collect($columnNames)->except(0);
+                    $otherColumns = collect($columnNames)->except([0]);
                     $firstFilter = new Filter($firstColumn, collect($global)->get("value"), collect($global)->get("matchMode"));
                     $this->applyFilter($firstFilter, $q);
                     foreach ($otherColumns as $column) {
