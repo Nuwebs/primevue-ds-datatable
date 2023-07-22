@@ -23,12 +23,39 @@ class Filter
     const DATE_BEFORE = 'dateBefore';
     const DATE_AFTER = 'dateAfter';
 
-    private $likeOperator = 'LIKE';
+    private string $likeOperator;
+    private string $field;
+    private string $value;
+    private string $matchMode;
 
-    public function __construct(public string $field, public ?string $value = null, public ?string $matchMode = self::CONTAINS)
+    public function __construct(string $field, ?string $value = null, ?string $matchMode = self::CONTAINS)
     {
+        $this->field = $field;
+        $this->value = $value;
+        $this->matchMode = $matchMode;
         $this->likeOperator = \DB::connection()->getPDO()->getAttribute(\PDO::ATTR_DRIVER_NAME) == 'pgsql' ? 'ILIKE' : 'LIKE';
-    }
+    }    
+
+	/**
+	 * @return string
+	 */
+	public function getField(): string {
+		return $this->field;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getValue(): string {
+		return $this->value;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getMatchMode(): string {
+		return $this->matchMode;
+	}
 
     public function buildWhere(Builder &$q, ?bool $or = false)
     {

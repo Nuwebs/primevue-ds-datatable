@@ -6,108 +6,69 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use ReflectionClass;
 use Throwable;
+
 class PrimevueDatatable
 {
     /**
      * @var Builder|\Illuminate\Database\Query\Builder
      */
     private \Illuminate\Database\Query\Builder|Builder $query;
-    private ?int $currentPage;
-    private $sort;
-    private $sortDirection;
-    private array $_searchableColumns;
-    /**
-     * @var int
-     */
-    private $perPage;
-    private array $filters;
-    private array $_dtParams;
+    private DatatableQuery $dtQueryParams;
 
     public function __construct()
     {
-        $params = request()->get('dt_params', "[]");
-        $this->_dtParams = is_array($params)? $params : json_decode($params, true);
-        $this->_searchableColumns = $this->_dtParams['columns'];
+        $this->dtQueryParams = new DatatableQuery(request()->get('dt_params', []));
     }
 
-    public function dtParams(array $params): static
+    private function setQuery(Builder $query): static
     {
-        $this->_dtParams = $params;
-        return $this;
-    }
-
-    public function searchableColumns(array $searchable_columns): static
-    {
-        $this->_searchableColumns = $searchable_columns;
-        return $this;
-    }
-
-    public function query(Builder $query): static {
         $this->query = $query;
         return $this;
     }
     public static function of(Builder $query): static
     {
-        // I'm pretty sure passing $query as an argument doesn't actually do anything.
         $instance = new self();
-        return $instance->query($query);
+        return $instance->setQuery($query);
     }
 
     public function make(): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $this->currentPage = collect($this->_dtParams)->get("page", 0) + 1;
-        $this->perPage = collect($this->_dtParams)->get("rows", 10);
-
-        $filters = collect($this->_dtParams)->get("filters", []);
-        $this->sort = collect($this->_dtParams)->get('sortField');
-        $this->sortDirection = collect($this->_dtParams)->get('sortOrder') == 1 ? 'asc' : 'desc';
-        $global = collect(collect($filters)->get("global") ?? null);
-        $localFilters = collect($filters)->except(["global"]);
-
-        $columnNames = $this->_searchableColumns;
-        $query = $this->query
-            ->where(function (Builder $q) use ($columnNames, $global) {
-                // Global Search
-                if (count($columnNames) && $global && collect($global)->get("value")) {
-                    $firstColumn = collect($columnNames)->get(0);
-                    $otherColumns = collect($columnNames)->except([0]);
-                    $firstFilter = new Filter($firstColumn, collect($global)->get("value"), collect($global)->get("matchMode"));
-                    $this->applyFilter($firstFilter, $q);
-                    foreach ($otherColumns as $column) {
-                        $colFilter = new Filter($column, collect($global)->get("value"), collect($global)->get("matchMode"));
-                        $this->applyFilter($colFilter, $q, true);
-                    }
+        $columns = $this->dtQueryParams->getColumns();
+        $params = $this->dtQueryParams;
+        $query = $this->query->where(function (Builder $q) use ($columns, $params) {
+            // Global Search
+            if ($params->hasGlobalFilter()) {
+                $globalFilter = $params->getGlobalFilter();
+                $firstColumn = $columns[0];
+                $otherColumns = array_slice($columns, 1);
+                $firstFilter = new Filter($firstColumn, $globalFilter->getValue(), $globalFilter->getMatchMode());
+                $this->applyFilter($firstFilter, $q);
+                foreach ($otherColumns as $column) {
+                    $colFilter = new Filter($column, $globalFilter->getValue(), $globalFilter->getMatchMode());
+                    $this->applyFilter($colFilter, $q, true);
                 }
-            })->where(function (Builder $q) use ($localFilters) {
-                // Local filters
-                foreach ($localFilters as $field => $filter) {
-                    if(isset($filter['constraints'])){
-                        foreach($filter['constraints'] as $const){
-                            if ($const["value"]) {
-                                $instance = new Filter($field, $const["value"], $const["matchMode"]);
-                                $this->applyFilter($instance, $q, $filter['operator'] == 'or' ? true : false);
-                            }
-                        }
-                    } else {
-                        if (collect($filter)->get("value") !== null) {
-                            $instance = new Filter($field, collect($filter)->get("value"), collect($filter)->get("matchMode"));
-                            $this->applyFilter($instance, $q);
-                        }
-                    }
+            }
+        })->where(function (Builder $q) use ($params) {
+            // Local filters
+            foreach ($params->getFilters() as $filter) {
+                if (!empty($filter->getValue())) {
+                    $this->applyFilter($filter, $q);
                 }
-            });
-        $with = collect([]);
-        foreach ($columnNames as $columnName) {
-            $exploded = explode(".", $columnName);
-            if (sizeof($exploded) == 2) {
-                $with->push($exploded[0]);
-            } elseif (sizeof($exploded) == 3) {
-                $with->push($exploded[0] . "." . $exploded[1]);
+            }
+        });
+        
+        $with = [];
+        foreach ($columns as $column){
+            $exploded = explode('.', $column);
+            $len = count($exploded);
+            if ($len > 1) {
+                $with[] = implode('.', array_slice($exploded, 0, $len - 1));
             }
         }
-        $query->with($with->toArray());
+        $query->with($with);
+
         $this->applySort($query);
-        return $query->paginate($this->perPage, page: $this->currentPage);
+        return $query->paginate($this->dtQueryParams->getRowsPerPage(), page: $this->dtQueryParams->getCurrentPage());
     }
 
     private function applyFilter(Filter $filter, Builder &$q, $or = false)
@@ -116,33 +77,32 @@ class PrimevueDatatable
         $filter->buildWhere($q, $or);
     }
 
-    private function applySort(Builder &$q)
+    private function applySort(Builder &$q): void
     {
-        if ($this->sort != null) {
-            $key = explode(".", $this->sort);
-            if (sizeof($key) === 1) {
-                $q->orderBy($this->sort, $this->sortDirection ?? 'asc');
-            } elseif (sizeof($key) === 2) {
-                $relationship = $this->getRelatedFromMethodName($key[0], get_class($q->getModel()));
-                if ($relationship) {
-                    $parentTable = $relationship->getParent()->getTable();
-                    $relatedTable = $relationship->getRelated()->getTable();
-                    if ($relationship instanceof HasOne) {
-                        $parentKey = explode(".", $relationship->getQualifiedParentKeyName())[1];
-                        $relatedKey = $relationship->getForeignKeyName();
-                    } else {
-                        $parentKey = $relationship->getForeignKeyName();
-                        $relatedKey = $relationship->getOwnerKeyName();
-                    }
+        if (empty($this->dtQueryParams->getSortBy()))
+            return;
+        
+        $key = explode(".", $this->dtQueryParams->getSortBy());
 
-                    $q->orderBy(
-                        get_class($relationship->getRelated())::query()->select($key[1])->whereColumn("$parentTable.$parentKey", "$relatedTable.$relatedKey"),
-                        $this->sortDirection ?? 'asc'
-                    );
-                    /*$q->join($fTable, "$ownerTable.$fKey", '=', "$fTable.$ownerKey")
-                        ->orderBy($fTable.".".$key[1],$this->sortDirection ?? 'asc');*/
-                    /*$q->orderBy($fKey,$this->sortDirection ?? 'asc');*/
+        if (sizeof($key) === 1) {
+            $q->orderBy($this->dtQueryParams->getSortBy(), $this->dtQueryParams->getSortDirection());
+        } elseif (sizeof($key) === 2) {
+            $relationship = $this->getRelatedFromMethodName($key[0], get_class($q->getModel()));
+            if ($relationship) {
+                $parentTable = $relationship->getParent()->getTable();
+                $relatedTable = $relationship->getRelated()->getTable();
+                if ($relationship instanceof HasOne) {
+                    $parentKey = explode(".", $relationship->getQualifiedParentKeyName())[1];
+                    $relatedKey = $relationship->getForeignKeyName();
+                } else {
+                    $parentKey = $relationship->getForeignKeyName();
+                    $relatedKey = $relationship->getOwnerKeyName();
                 }
+
+                $q->orderBy(
+                    get_class($relationship->getRelated())::query()->select($key[1])->whereColumn("$parentTable.$parentKey", "$relatedTable.$relatedKey"),
+                    $this->dtQueryParams->getSortDirection()
+                );
             }
         }
     }
