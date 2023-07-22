@@ -25,9 +25,9 @@ class PrimevueDatatable
 
     public function __construct()
     {
-        $this->_dtParams = json_decode(request()->get('dt_params', "[]"), true);
-        $this->_searchableColumns
-        = json_decode(request()->get('searchable_columns',"[]"), true);
+        $params = request()->get('dt_params', "[]");
+        $this->_dtParams = is_array($params)? $params : json_decode($params, true);
+        $this->_searchableColumns = $this->_dtParams['columns'];
     }
 
     public function dtParams(array $params): static
