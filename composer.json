@@ -42,5 +42,15 @@
     },
     "config": {
         "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nuwebs\\PrimevueDatatable\\PrimevueDatatableServiceProvider"
+            ],
+            "aliases": {
+                "PrimevueDatatable": "Nuwebs\\PrimevueDatatable\\PrimevueDatatableFacade"
+            }
+        }
     }
 }
