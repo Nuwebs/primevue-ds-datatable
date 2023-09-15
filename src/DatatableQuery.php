@@ -52,7 +52,7 @@ class DatatableQuery
     return $this->filters;
   }
 
-  public function getSortBy(): string | null
+  public function getSortBy(): string|null
   {
     return $this->sortBy;
   }
@@ -80,7 +80,7 @@ class DatatableQuery
   private function setFilters(array $rawFilters): void
   {
     foreach ($rawFilters as $field => $rawFilter) {
-      $filter = new Filter($field, $rawFilter['value'], $rawFilter['matchMode']);
+      $filter = new Filter($field, $rawFilter['value'], FilterMatchMode::from($rawFilter['matchMode']));
       if ($field === 'global') {
         $this->globalFilter = $filter;
       } else {

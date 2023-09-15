@@ -35,24 +35,8 @@ class DatatableRequest extends FormRequest
             'dt_params.sortField' => 'nullable|string',
             'dt_params.sortDesc' => 'boolean',
             'dt_params.filters' => 'nullable|array',
-            'dt_params.filters.*.*.value' => 'nullable',
-            'dt_params.filters.*.*.matchMode' => Rule::in([
-                Filter::STARTS_WITH,
-                Filter::CONTAINS,
-                Filter::NOT_CONTAINS,
-                Filter::ENDS_WITH,
-                Filter::EQUALS,
-                Filter::IN,
-                Filter::LESS_THAN,
-                Filter::LESS_THAN_OR_EQUAL_TO,
-                Filter::GREATER_THAN,
-                Filter::GREATER_THAN_OR_EQUAL_TO,
-                Filter::BETWEEN,
-                Filter::DATE_IS,
-                Filter::DATE_IS_NOT,
-                Filter::DATE_BEFORE,
-                Filter::DATE_AFTER
-            ]),
+            'dt_params.filters.*.value' => 'nullable',
+            'dt_params.filters.*.matchMode' => Rule::in(FilterMatchMode::getAllValues()),
         ];
     }
 }
