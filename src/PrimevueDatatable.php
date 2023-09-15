@@ -3,9 +3,6 @@
 namespace Nuwebs\PrimevueDatatable;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use ReflectionClass;
-use Throwable;
 
 class PrimevueDatatable
 {
@@ -79,39 +76,6 @@ class PrimevueDatatable
     {
         if (empty($this->dtQueryParams->getSortBy()))
             return;
-        
-        $key = explode(".", $this->dtQueryParams->getSortBy());
-
-        if (sizeof($key) === 1) {
-            $q->orderBy($this->dtQueryParams->getSortBy(), $this->dtQueryParams->getSortDirection());
-        } elseif (sizeof($key) === 2) {
-            $relationship = $this->getRelatedFromMethodName($key[0], get_class($q->getModel()));
-            if ($relationship) {
-                $parentTable = $relationship->getParent()->getTable();
-                $relatedTable = $relationship->getRelated()->getTable();
-                if ($relationship instanceof HasOne) {
-                    $parentKey = explode(".", $relationship->getQualifiedParentKeyName())[1];
-                    $relatedKey = $relationship->getForeignKeyName();
-                } else {
-                    $parentKey = $relationship->getForeignKeyName();
-                    $relatedKey = $relationship->getOwnerKeyName();
-                }
-
-                $q->orderBy(
-                    get_class($relationship->getRelated())::query()->select($key[1])->whereColumn("$parentTable.$parentKey", "$relatedTable.$relatedKey"),
-                    $this->dtQueryParams->getSortDirection()
-                );
-            }
-        }
-    }
-
-    private function getRelatedFromMethodName(string $method_name, string $class)
-    {
-        try {
-            $method = (new ReflectionClass($class))->getMethod($method_name);
-            return $method->invoke(new $class);
-        } catch (Throwable $exception) {
-            return null;
-        }
+        $q->orderBy($this->dtQueryParams->getSortBy(), $this->dtQueryParams->getSortDirection());
     }
 }
