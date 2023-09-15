@@ -4,6 +4,7 @@ namespace Nuwebs\PrimevueDatatable;
 
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
+use Nuwebs\PrimevueDatatable\Filter\FilterMatchMode;
 
 class DatatableRequest extends FormRequest
 {

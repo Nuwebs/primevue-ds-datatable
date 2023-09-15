@@ -1,8 +1,9 @@
 <?php
 
-namespace Nuwebs\PrimevueDatatable;
+namespace Nuwebs\PrimevueDatatable\Filter;
 
 use Illuminate\Database\Eloquent\Builder;
+use Nuwebs\PrimevueDatatable\Filter\FilterMatchMode;
 
 class Filter
 {

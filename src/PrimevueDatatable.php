@@ -3,6 +3,8 @@
 namespace Nuwebs\PrimevueDatatable;
 
 use Illuminate\Database\Eloquent\Builder;
+use Nuwebs\PrimevueDatatable\Datatable\DatatableQuery;
+use Nuwebs\PrimevueDatatable\Filter\Filter;
 
 class PrimevueDatatable
 {

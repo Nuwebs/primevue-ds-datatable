@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwebs\PrimevueDatatable;
+namespace Nuwebs\PrimevueDatatable\Filter;
 enum FilterMatchMode: string
 {
   // The case values are the exact same as PrimeVue values. DO NOT change this unless PrimeVue team

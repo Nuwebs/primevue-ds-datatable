@@ -1,5 +1,7 @@
 <?php
-namespace Nuwebs\PrimevueDatatable;
+namespace Nuwebs\PrimevueDatatable\Datatable;
+use Nuwebs\PrimevueDatatable\Filter\Filter;
+use Nuwebs\PrimevueDatatable\Filter\FilterMatchMode;
 
 class DatatableQuery
 {
