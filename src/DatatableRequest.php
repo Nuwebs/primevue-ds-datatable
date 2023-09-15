@@ -33,7 +33,7 @@ class DatatableRequest extends FormRequest
             'dt_params.rows' => 'required|integer|min:1',
             'dt_params.page' => 'required|integer|min:0',
             'dt_params.sortField' => 'nullable|string',
-            'dt_params.sortOrder' => 'nullable|boolean',
+            'dt_params.sortDesc' => 'boolean',
             'dt_params.filters' => 'nullable|array',
             'dt_params.filters.*.*.value' => 'nullable',
             'dt_params.filters.*.*.matchMode' => Rule::in([

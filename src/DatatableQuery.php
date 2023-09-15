@@ -24,7 +24,7 @@ class DatatableQuery
     $this->currentPage = $tempObj->get('page', 1);
     $this->rowsPerPage = $tempObj->get('rows', 15);
     $this->sortBy = $tempObj->get('sortField');
-    $this->sortDirection = $tempObj->get('sortOrder') == 1 ? 'asc' : 'desc';
+    $this->sortDirection = $tempObj->get('sortDesc') == 1 ? 'desc' : 'asc';
     $this->globalFilter = null;
 
     $this->setFilters($tempObj->get('filters', []));
