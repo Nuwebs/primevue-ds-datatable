@@ -28,269 +28,204 @@ class Filter
     private string $value;
     private string $matchMode;
 
-    public function __construct(string $field, ?string $value = null, ?string $matchMode = self::CONTAINS)
+    public function __construct(string $field, string $value = null, string $matchMode = self::CONTAINS)
     {
         $this->field = $field;
         $this->value = $value;
         $this->matchMode = $matchMode;
         $this->likeOperator = \DB::connection()->getPDO()->getAttribute(\PDO::ATTR_DRIVER_NAME) == 'pgsql' ? 'ILIKE' : 'LIKE';
-    }    
-
-	/**
-	 * @return string
-	 */
-	public function getField(): string {
-		return $this->field;
-	}
-	
-	/**
-	 * @return string
-	 */
-	public function getValue(): string {
-		return $this->value;
-	}
-	
-	/**
-	 * @return string
-	 */
-	public function getMatchMode(): string {
-		return $this->matchMode;
-	}
-
-    public function buildWhere(Builder &$q, ?bool $or = false)
-    {
-        $searchParts = explode(".", $this->field);
-        if (count($searchParts) <= 4) {
-            switch (count($searchParts)) {
-                case 1:
-                    $this->applyWhere($q, $searchParts[0], $or);
-                    break;
-                case 2:
-                    if ($or) {
-                        $q->orWhereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $this->applyWhere($q1, $searchParts[1]);
-                        });
-                    } else {
-                        $q->whereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $this->applyWhere($q1, $searchParts[1]);
-                        });
-                    }
-
-                    break;
-                case  3:
-                    if ($or) {
-                        $q->orWhereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $q1->whereHas($searchParts[1], function ($q2) use ($searchParts) {
-                                $this->applyWhere($q2, $searchParts[2]);
-                            });
-                        });
-                    } else {
-                        $q->whereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $q1->whereHas($searchParts[1], function ($q2) use ($searchParts) {
-                                $this->applyWhere($q2, $searchParts[2]);
-                            });
-                        });
-                    }
-                    break;
-                case  4:
-                    if ($or) {
-                        $q->orWhereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $q1->whereHas($searchParts[1], function ($q2) use ($searchParts) {
-                                $q2->whereHas($searchParts[2], function ($q3) use ($searchParts) {
-                                    $this->applyWhere($q3, $searchParts[3]);
-                                });
-                            });
-                        });
-                    } else {
-                        $q->whereHas($searchParts[0], function ($q1) use ($searchParts) {
-                            $q1->whereHas($searchParts[1], function ($q2) use ($searchParts) {
-                                $q2->whereHas($searchParts[2], function ($q3) use ($searchParts) {
-                                    $this->applyWhere($q3, $searchParts[3]);
-                                });
-                            });
-                        });
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
     }
-    private function applyWhere(Builder &$q, string $field, ?bool $or = false)
+
+    /**
+     * @return string
+     */
+    public function getField(): string
     {
+        return $this->field;
+    }
+
+    /**
+     * @return string
+     */
+    public function getValue(): string
+    {
+        return $this->value;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMatchMode(): string
+    {
+        return $this->matchMode;
+    }
+
+    public function applyFilter(Builder &$q, ?bool $or = false): void
+    {
+        $relations = explode('.', $this->field);
+        $rLen = count($relations);
+        if ($rLen > 1) {
+            // If the filter has a relation path, take the relation and pass it to
+            // the orWhereHas or whereHas.
+            $relPath = implode('.', array_slice($relations, 0, $rLen - 1));
+            $relCol = end($relations);
+            $func = $or ? 'orWhereHas' : 'whereHas';
+            $q->$func($relPath, function ($newQ) use ($relCol, $or) {
+                return $this->applyWhere($newQ, $relCol, $or);
+            });
+            return;
+        }
+        $this->applyWhere($q, $relations[0], $or);
+    }
+    private function applyWhere(Builder $q, string $field, bool $or = false): Builder
+    {
+        // NEEDS TO BE HEAVILY REFACTORED
         $jsonField = $this->isJsonFieldPath($field);
 
         switch ($this->matchMode) {
             case self::STARTS_WITH:
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, $this->likeOperator, $this->value . "%");
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower($this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, $this->likeOperator, $this->value . "%");
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower($this->value . "%"));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, $this->likeOperator, $this->value . "%");
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower($this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->where($field, $this->likeOperator, $this->value . "%");
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower($this->value . "%"));
                     }
                 }
-                break;
             case self::NOT_CONTAINS:
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, "NOT" . $this->likeOperator, "%" . $this->value . "%");
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") NOT '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, "NOT" . $this->likeOperator, "%" . $this->value . "%");
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") NOT ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . "%"));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, "NOT" . $this->likeOperator, "%" . $this->value . "%");
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") NOT '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->where($field, "NOT" . $this->likeOperator, "%" . $this->value . "%");
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") NOT ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . "%"));
                     }
                 }
-                break;
             case self::ENDS_WITH:
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, $this->likeOperator, "%" . $this->value);
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . ""));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, $this->likeOperator, "%" . $this->value);
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . ""));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, $this->likeOperator, "%" . $this->value);
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . ""));
+                    if (!$jsonField) {
+                        return $q->where($field, $this->likeOperator, "%" . $this->value);
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . ""));
                     }
                 }
-                break;
             case self::EQUALS:
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, "=", $this->value);
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") = ?', mb_strtolower($this->value));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, "=", $this->value);
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") = ?', mb_strtolower($this->value));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, "=", $this->value);
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") = ?', mb_strtolower($this->value));
+                    if (!$jsonField) {
+                        return $q->where($field, "=", $this->value);
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") = ?', mb_strtolower($this->value));
                     }
                 }
-                break;
             case self::NOT_EQUALS:
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, "!=", $this->value);
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") != ?', mb_strtolower($this->value));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, "!=", $this->value);
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") != ?', mb_strtolower($this->value));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, "!=", $this->value);
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") != ?', mb_strtolower($this->value));
+                    if (!$jsonField) {
+                        return $q->where($field, "!=", $this->value);
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") != ?', mb_strtolower($this->value));
                     }
                 }
-                break;
             case self::IN:
                 //TODO: Implement
-                break;
+                return $q;
             case self::LESS_THAN:
                 if ($or) {
-                    $q->orWhere($field, "<", $this->value);
+                    return $q->orWhere($field, "<", $this->value);
                 } else {
-                    $q->where($field, "<", $this->value);
+                    return $q->where($field, "<", $this->value);
                 }
-                break;
             case self::LESS_THAN_OR_EQUAL_TO:
                 if ($or) {
-                    $q->orWhere($field, "<=", $this->value);
+                    return $q->orWhere($field, "<=", $this->value);
                 } else {
-                    $q->where($field, "<=", $this->value);
+                    return $q->where($field, "<=", $this->value);
                 }
-                break;
             case self::GREATER_THAN:
                 if ($or) {
-                    $q->orWhere($field, ">", $this->value);
+                    return $q->orWhere($field, ">", $this->value);
                 } else {
-                    $q->where($field, ">", $this->value);
+                    return $q->where($field, ">", $this->value);
                 }
-                break;
             case self::GREATER_THAN_OR_EQUAL_TO:
                 if ($or) {
-                    $q->orWhere($field, ">=", $this->value);
+                    return $q->orWhere($field, ">=", $this->value);
                 } else {
-                    $q->where($field, ">=", $this->value);
+                    return $q->where($field, ">=", $this->value);
                 }
-                break;
             case self::BETWEEN:
                 //TODO: implement
-                break;
+                return $q;
 
             case self::DATE_IS:
                 if ($or) {
-                    $q->orWhereDate($field, "=", $this->value);
+                    return $q->orWhereDate($field, "=", $this->value);
                 } else {
-                    $q->whereDate($field, "=", $this->value);
+                    return $q->whereDate($field, "=", $this->value);
                 }
-                break;
 
             case self::DATE_IS_NOT:
                 if ($or) {
-                    $q->orWhereDate($field, "!=", $this->value);
+                    return $q->orWhereDate($field, "!=", $this->value);
                 } else {
-                    $q->whereDate($field, "!=", $this->value);
+                    return $q->whereDate($field, "!=", $this->value);
                 }
-                break;
 
             case self::DATE_BEFORE:
                 if ($or) {
-                    $q->orWhereDate($field, "<=", $this->value);
+                    return $q->orWhereDate($field, "<=", $this->value);
                 } else {
-                    $q->whereDate($field, "<=", $this->value);
+                    return $q->whereDate($field, "<=", $this->value);
                 }
-                break;
             case self::DATE_AFTER:
                 if ($or) {
-                    $q->orWhereDate($field, ">", $this->value);
+                    return $q->orWhereDate($field, ">", $this->value);
                 } else {
-                    $q->whereDate($field, ">", $this->value);
+                    return $q->whereDate($field, ">", $this->value);
                 }
-                break;
 
             case self::CONTAINS:
             default:
-
                 if ($or) {
-                    if(!$jsonField) {
-                        $q->orWhere($field, $this->likeOperator, "%" . $this->value . "%");
-                    }
-                    else {
-                        $q->orWhereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->orWhere($field, $this->likeOperator, "%" . $this->value . "%");
+                    } else {
+                        return $q->orWhereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . "%"));
                     }
                 } else {
-                    if(!$jsonField) {
-                        $q->where($field, $this->likeOperator, "%" . $this->value . "%");
-                    }
-                    else {
-                        $q->whereRaw('LOWER('.$jsonField[0].'->>"$.'.$jsonField[1].'") '.$this->likeOperator.' ?', mb_strtolower("%" . $this->value . "%"));
+                    if (!$jsonField) {
+                        return $q->where($field, $this->likeOperator, "%" . $this->value . "%");
+                    } else {
+                        return $q->whereRaw('LOWER(' . $jsonField[0] . '->>"$.' . $jsonField[1] . '") ' . $this->likeOperator . ' ?', mb_strtolower("%" . $this->value . "%"));
                     }
                 }
-                break;
         }
     }
 
@@ -303,7 +238,7 @@ class Filter
      */
     private function isJsonFieldPath(string $field): false|array
     {
-        if(str_contains($field, "->")) {
+        if (str_contains($field, "->")) {
             return explode("->", $field);
         }
         return false;

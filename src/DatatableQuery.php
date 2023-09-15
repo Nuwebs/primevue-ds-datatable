@@ -10,8 +10,9 @@ class DatatableQuery
   private string|null $sortBy;
   private string $sortDirection;
   private array $filters;
+  // The columns are used for the global search.
   private array $columns;
-  private Filter $globalFilter;
+  private Filter|null $globalFilter;
 
   public function __construct(string|array $jsonQuery)
   {
@@ -24,6 +25,7 @@ class DatatableQuery
     $this->rowsPerPage = $tempObj->get('rows', 15);
     $this->sortBy = $tempObj->get('sortField');
     $this->sortDirection = $tempObj->get('sortOrder') == 1 ? 'asc' : 'desc';
+    $this->globalFilter = null;
 
     $this->setFilters($tempObj->get('filters', []));
   }
