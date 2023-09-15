@@ -36,7 +36,7 @@ class DatatableRequest extends FormRequest
             'dt_params.sortDesc' => 'boolean',
             'dt_params.filters' => 'nullable|array',
             'dt_params.filters.*.value' => 'nullable',
-            'dt_params.filters.*.matchMode' => Rule::in(FilterMatchMode::getAllValues()),
+            'dt_params.filters.*.matchMode' => ['required', Rule::in(FilterMatchMode::getAllValues())],
         ];
     }
 }
