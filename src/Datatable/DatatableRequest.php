@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwebs\PrimevueDatatable;
+namespace Nuwebs\PrimevueDatatable\Datatable;
 
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
