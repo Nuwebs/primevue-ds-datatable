@@ -32,11 +32,16 @@
     },
     "require-dev": {
         "orchestra/testbench": "^8",
-        "phpunit/phpunit": "^9.0"
+        "phpunit/phpunit": "^10.1"
     },
     "autoload": {
         "psr-4": {
             "Nuwebs\\PrimevueDatatable\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nuwebs\\PrimevueDatatable\\Tests\\": "tests"
         }
     },
     "config": {
