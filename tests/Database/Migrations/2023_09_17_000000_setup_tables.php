@@ -6,30 +6,33 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class SetupTables extends Migration
+return new class extends Migration
 {
   public function up()
   {
     Schema::create('countries', function (Blueprint $table) {
       $table->id();
-      $table->string('country_name');
+      $table->string('name');
+      $table->timestamps();
     });
     Schema::create('cities', function (Blueprint $table) {
       $table->id();
       $table->string('name');
       $table->string('zip_code');
       $table->foreignId('country_id')->constrained();
+      $table->timestamps();
     });
     Schema::create('businesses', function (Blueprint $table) {
       $table->id();
       $table->string('name');
-      $table->string('slogan');
       $table->foreignId('city_id')->constrained();
       $table->foreignId('user_id')->constrained();
+      $table->timestamps();
     });
     Schema::create('users', function (Blueprint $table) {
       $table->id();
       $table->string('username');
+      $table->timestamps();
     });
   }
 
@@ -40,4 +43,4 @@ class SetupTables extends Migration
     Schema::dropIfExists('businesses');
     Schema::dropIfExists('users');
   }
-}
+};
