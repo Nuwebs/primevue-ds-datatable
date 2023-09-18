@@ -5,6 +5,8 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
 use Nuwebs\PrimevueDatatable\Datatable\DatatableRequest;
+use Nuwebs\PrimevueDatatable\PrimevueDatatable;
+use Nuwebs\PrimevueDatatable\Tests\Models\Country;
 
 class CountryController extends Controller
 {
@@ -12,6 +14,6 @@ class CountryController extends Controller
 
   public function index(DatatableRequest $request)
   {
-    return response()->json([], 200);
+    return PrimevueDatatable::of(Country::query())->make();
   }
 }
