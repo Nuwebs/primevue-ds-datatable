@@ -24,7 +24,7 @@ class PrimevueDatatableTestCase extends TestCase
   protected function getEnvironmentSetUp($app): void
   {
     $app['config']->set('database.default', 'testdb');
-    $app['config']->set('database.conections.testdb', [
+    $app['config']->set('database.connections.testdb', [
       'driver' => 'sqlite',
       'database' => ':memory:'
     ]);
