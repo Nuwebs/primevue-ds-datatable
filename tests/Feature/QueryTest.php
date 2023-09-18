@@ -11,10 +11,10 @@ class QueryTest extends PrimevueDatatableTestCase
 
   protected function setUp(): void
   {
-    parent::setUp();    
+    parent::setUp();
     $this->seed(DbSeeder::class);
     $this->withoutExceptionHandling();
-  }  
+  }
 
   protected function defineDatabaseMigrations(): void
   {
@@ -33,5 +33,63 @@ class QueryTest extends PrimevueDatatableTestCase
     $response = $this->getJson("/test?dt_params=$payload");
     $response->assertStatus(200);
   }
-  
+
+  public function test_filtered_countries_query(): void
+  {
+    $payload = [
+      'columns' => ['name'],
+      'first' => 0,
+      'rows' => 20,
+      'page' => 0,
+      'filters' => [
+        'name' => [
+          'value' => 'bia',
+          'matchMode' => 'contains'
+        ]
+      ]
+    ];
+    $payload = json_encode($payload);
+    $response = $this->getJson("/test?dt_params=$payload");
+    $response->assertStatus(200);
+    $response->assertJsonFragment([
+      'data' => [
+        [
+          'name' => 'Colombia'
+        ]
+      ]
+    ]);
+  }
+
+  public function test_relationship_filter_query(): void
+  {
+    $payload = [
+      'columns' => ['name'],
+      'first' => 0,
+      'rows' => 20,
+      'page' => 0,
+      'filters' => [
+        'cities.businesses.user.username' => [
+          'value' => 'Douglas',
+          'matchMode' => 'equals'
+        ]
+      ]
+    ];
+    $payload = json_encode($payload);
+    $response = $this->getJson("/test?dt_params=$payload");
+    $response->assertStatus(200);
+    $response->assertJsonFragment([
+      'data' => [
+        [
+          'name' => 'Colombia'
+        ],
+        [
+          'name' => 'Argentina'
+        ],
+        [
+          'name' => 'Perú'
+        ]
+      ]
+    ]);
+  }
+
 }

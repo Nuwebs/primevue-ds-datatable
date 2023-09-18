@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Nuwebs\PrimevueDatatable\Datatable\DatatableRequest;
 use Nuwebs\PrimevueDatatable\PrimevueDatatable;
 use Nuwebs\PrimevueDatatable\Tests\Models\Country;
+use Nuwebs\PrimevueDatatable\Tests\Resources\CountryResource;
 
 class CountryController extends Controller
 {
@@ -14,6 +15,6 @@ class CountryController extends Controller
 
   public function index(DatatableRequest $request)
   {
-    return PrimevueDatatable::of(Country::query())->make();
+    return CountryResource::collection(PrimevueDatatable::of(Country::query())->make());
   }
 }
